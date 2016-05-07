@@ -8,10 +8,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"time"
 
 	"gopkg.in/yaml.v2"
-	"github.com/lib/pq"
+	_ "github.com/lib/pq"
 )
 
 type pgAccess struct {
@@ -24,12 +23,11 @@ type pgAccess struct {
 }
 
 type AuthError struct {
-	When time.Time
 	Username string
 }
 
 func (e AuthError) Error() string {
-	return fmt.Sprintf("%v: %v", e.When, e.Username)
+	return fmt.Sprintf("Auth failed: %s", e.Username)
 }
 
 var (
@@ -46,7 +44,6 @@ func checkErr(err error) {
 			log.Fatal(err)
 			os.Exit(1)
 		default:
-			log.Fatal(err)
 			panic(err)
 	}
 }
@@ -100,7 +97,7 @@ func checkCredentials(dbConfig *pgAccess, creds []string) (error) {
 		}
 	}
 
-	return AuthError{time.Now(), fmt.Sprintf("Access denied: %s", creds[0])}
+	return AuthError{creds[0]}
 }
 
 func main() {
@@ -110,18 +107,24 @@ func main() {
 	if len(os.Args) < 2 {
 		flag.PrintDefaults()
 		os.Exit(1)
-	} else {
-		flag.Parse()
-		if flag.Parsed() {
+	}
 
-			dbConfig, err := getDBConfig(configFile)
-			checkErr(err)
+	flag.Parse()
 
-			creds, err := readCredentials(credentialsFile)
-			checkErr(err)
+	if flag.Parsed() {
 
-			err = checkCredentials(dbConfig, creds)
-			checkErr(err)
+		dbConfig, err := getDBConfig(configFile)
+		checkErr(err)
+
+		creds, err := readCredentials(credentialsFile)
+		checkErr(err)
+
+		err = checkCredentials(dbConfig, creds)
+		checkErr(err)
+
+		if err == nil {
+			log.Printf("Authenticated: %s", creds[0])
+			os.Exit(0)
 		}
 	}
 	os.Exit(1)
