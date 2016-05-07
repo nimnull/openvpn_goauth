@@ -38,10 +38,7 @@ var (
 		"WHERE email=$1 AND access_token=$2 AND is_active='t'"
 )
 
-func check(err error) {
-	if err, ok := err.(*pq.Error); ok {
-		log.Fatal(err)
-	}
+func checkErr(err error) {
 	switch err.(type) {
 		case nil:
 			return
@@ -118,13 +115,13 @@ func main() {
 		if flag.Parsed() {
 
 			dbConfig, err := getDBConfig(configFile)
-			check(err)
+			checkErr(err)
 
 			creds, err := readCredentials(credentialsFile)
-			check(err)
+			checkErr(err)
 
 			err = checkCredentials(dbConfig, creds)
-			check(err)
+			checkErr(err)
 		}
 	}
 	os.Exit(1)
